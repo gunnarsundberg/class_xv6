@@ -1,6 +1,9 @@
 #ifndef _SYSFUNC_H_
 #define _SYSFUNC_H_
 
+// Syscall counter for Part B is declared here and initialized in syscall.c
+extern int counterB;
+
 // System call handlers
 int sys_chdir(void);
 int sys_close(void);
@@ -23,5 +26,7 @@ int sys_unlink(void);
 int sys_wait(void);
 int sys_write(void);
 int sys_uptime(void);
+int sys_PartA(void);
+int sys_PartB(void);
 
 #endif // _SYSFUNC_H_
