@@ -7,6 +7,12 @@
 #include "syscall.h"
 #include "sysfunc.h"
 
+//TODO: Key file for part B
+// Syscall counter for Part B is initialized here 
+// after being declared in sysfunc.h
+int counterB = 0;
+//extern int PartB(void);
+
 // User code makes a system call with INT T_SYSCALL.
 // System call number in %eax.
 // Arguments on the stack, from the user call to the C
@@ -103,6 +109,8 @@ static int (*syscalls[])(void) = {
 [SYS_wait]    sys_wait,
 [SYS_write]   sys_write,
 [SYS_uptime]  sys_uptime,
+[SYS_PartA]   sys_PartA,
+[SYS_PartB]   sys_PartB,
 };
 
 // Called on a syscall trap. Checks that the syscall number (passed via eax)
@@ -115,6 +123,8 @@ syscall(void)
   num = proc->tf->eax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num] != NULL) {
     proc->tf->eax = syscalls[num]();
+    // Increment number of syscalls for Part B
+    counterB++;
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             proc->pid, proc->name, num);
