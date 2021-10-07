@@ -1,5 +1,6 @@
 #ifndef _DEFS_H_
 #define _DEFS_H_
+#include "pstat.h"
 
 struct buf;
 struct context;
@@ -109,6 +110,8 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+int             settickets(int);
+int             getpinfo(struct pstat*);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
