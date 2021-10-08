@@ -5,6 +5,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "pstat.h"
 
 struct {
   struct spinlock lock;
@@ -152,6 +153,9 @@ fork(void)
     if(proc->ofile[i])
       np->ofile[i] = filedup(proc->ofile[i]);
   np->cwd = idup(proc->cwd);
+
+  // Child inherets tickets from parent
+  np->tickets = np->parent->tickets;
  
   pid = np->pid;
   np->state = RUNNABLE;
@@ -443,4 +447,47 @@ procdump(void)
   }
 }
 
+int getpinfo(struct pstat* table)
+{
+  //create a pointer able to point to obj
+  struct proc *p;
+  //Create a pointer able to point to objects of the
+  int i = 0; // used to iterate througt the slots of the arrays in pst
+  //lock the ptable (array containing the process)
+  acquire(&ptable.lock);
+  // use p to iterate throght the
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    //check the state of a proces:
+    if (p->state == ZOMBIE || p->state == EMBRYO)
+    {
+      continue;
+    }
+    if (p->state == UNUSED) 
+    {
+      table->inuse[i] = 0; //check the name of the arrays in pstat.
+    }
+    else
+    {
+      table->inuse[i] = 1;
+    }
+    table->pid[i] = p->pid; //with the pid of the process p-›
+    table->tickets[i] = p->tickets; //with the number of ti
+    table->ticks[i] = p->ticks; //with the number of time the process has ri
+    i++;
+  }
+  release (&ptable.lock);
+  return 0;
+}
 
+int settickets(int passTickets)
+{
+  if (passTickets < 1) {
+    return -1;
+  }
+  else
+  {
+    proc->tickets = passTickets;
+    return 0;
+  }
+}
