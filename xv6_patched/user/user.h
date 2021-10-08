@@ -3,6 +3,7 @@
 #include "pstat.h"
 
 struct stat;
+struct pstat;
 
 // system calls
 int fork(void);
