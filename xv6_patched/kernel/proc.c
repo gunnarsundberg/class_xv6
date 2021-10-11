@@ -170,7 +170,7 @@ fork(void)
   np->cwd = idup(proc->cwd);
 
   // Child inherets tickets from parent
-  np->tickets = np->parent->tickets;
+  np->tickets = proc->tickets;
  
   pid = np->pid;
   np->state = RUNNABLE;
@@ -277,20 +277,22 @@ scheduler(void)
   struct proc *p;
 
   for(;;){
-    // Enable interrupts on this processor.
-    sti();
-
     // Variables for lottery scheduling
     int totaltickets = 0;
     int counter = 0;
     int winner = 0;
 
+    // Enable interrupts on this processor.
+    sti();
+
+    winner++;
+    counter++;
     acquire(&ptable.lock);
     // Loop over process table to count total tickets.
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state==RUNNABLE)
+      if(p->state == RUNNABLE)
       {
-        totaltickets = totaltickets + p->tickets;
+        totaltickets += p->tickets;
       }
     }
     
@@ -317,14 +319,14 @@ scheduler(void)
         proc = p;
         switchuvm(p);
         p->state = RUNNING;
+        // Add to ticks
+        p->ticks = p->ticks + 1;
         swtch(&cpu->scheduler, proc->context);
         switchkvm();
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         proc = 0;
-        // Add to ticks
-        p->ticks += 1;
         break;
       }
     }
@@ -524,14 +526,14 @@ int getpinfo(struct pstat* table)
   return 0;
 }
 
-int settickets(int passTickets)
+int settickets(int tickets)
 {
-  if (passTickets < 1) {
+  if (tickets < 1) {
     return -1;
   }
   else
   {
-    proc->tickets = passTickets;
+    proc->tickets = tickets;
     return 0;
   }
 }
