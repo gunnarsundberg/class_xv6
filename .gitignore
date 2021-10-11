@@ -1,0 +1,22 @@
+# Compiled files
+*.o
+*.d
+*.out
+*.img
+
+# XV6 root
+/xv6_patched/bootother
+/xv6_patched/initcode
+
+# Kernel files
+/xv6_patched/kernel/kernel
+/xv6_patched/kernel/bootblock
+
+# User binaries
+/xv6_patched/user/bin/*
+
+# Ignore all in fs except README
+/xv6_patched/fs/*
+/xv6_patched/fs/!README
+
+/xv6_patched/tools/mkfs
