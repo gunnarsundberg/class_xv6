@@ -6,6 +6,21 @@
 #include "proc.h"
 #include "spinlock.h"
 #include "pstat.h"
+#define SCHRAND_MAX ((1U << 31) - 1)
+#define SCHRAND_MULT 214013
+#define SCHRAND_CONST 2531011
+
+// Pseudo-random number generator made from a linear congruential generator.
+// Based on code and constants found at:
+// https://rosettacode.org/wiki/Linear_congruential_generator
+
+int rseed = 707606505;
+
+int rand (void)
+{
+  return rseed = (rseed * SCHRAND_MULT + SCHRAND_CONST) % SCHRAND_MAX;
+}
+
 
 struct {
   struct spinlock lock;
@@ -265,24 +280,53 @@ scheduler(void)
     // Enable interrupts on this processor.
     sti();
 
-    // Loop over process table looking for process to run.
+    // Variables for lottery scheduling
+    int totaltickets = 0;
+    int counter = 0;
+    int winner = 0;
+
     acquire(&ptable.lock);
+    // Loop over process table to count total tickets.
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state==RUNNABLE)
+      {
+        totaltickets = totaltickets + p->tickets;
+      }
+    }
+    
+    // Run lottery and choose winning process
+    if(totaltickets > 0){
+      winner = rand() % totaltickets + 1;
+    }
+    
+    // Loop over process table looking for process to run.
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-      swtch(&cpu->scheduler, proc->context);
-      switchkvm();
+      if(p->state == RUNNABLE && counter < winner){
+        // Update counter
+        counter += p->tickets;
+        continue;
+      }
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      proc = 0;
+      if(p->state == RUNNABLE && counter >= winner){
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+        swtch(&cpu->scheduler, proc->context);
+        switchkvm();
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        proc = 0;
+        // Add to ticks
+        p->ticks += 1;
+        break;
+      }
     }
     release(&ptable.lock);
 
