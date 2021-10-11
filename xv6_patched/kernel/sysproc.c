@@ -42,14 +42,14 @@ sys_getpinfo(void)
 int
 sys_settickets(void)
 {
-  int mytickets;
-  if (argint(0, &mytickets) < 0)
+  int tickets;
+  if (argint(0, &tickets) < 0)
   {
     return -1;
   }
   else
   {
-    return settickets(mytickets);
+    return settickets(tickets);
   }
 }
 
