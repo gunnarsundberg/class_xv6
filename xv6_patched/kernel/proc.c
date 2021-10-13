@@ -5,6 +5,22 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "pstat.h"
+#define SCHRAND_MAX ((1U << 31) - 1)
+#define SCHRAND_MULT 214013
+#define SCHRAND_CONST 2531011
+
+// Pseudo-random number generator made from a linear congruential generator.
+// Based on code and constants found at:
+// https://rosettacode.org/wiki/Linear_congruential_generator
+
+int rseed = 707606505;
+
+int rand (void)
+{
+  return rseed = (rseed * SCHRAND_MULT + SCHRAND_CONST) % SCHRAND_MAX;
+}
+
 
 struct {
   struct spinlock lock;
@@ -152,6 +168,9 @@ fork(void)
     if(proc->ofile[i])
       np->ofile[i] = filedup(proc->ofile[i]);
   np->cwd = idup(proc->cwd);
+
+  // Child inherets tickets from parent
+  np->tickets = proc->tickets;
  
   pid = np->pid;
   np->state = RUNNABLE;
@@ -258,27 +277,58 @@ scheduler(void)
   struct proc *p;
 
   for(;;){
+    // Variables for lottery scheduling
+    int totaltickets = 0;
+    int counter = 0;
+    int winner = 0;
+
     // Enable interrupts on this processor.
     sti();
 
-    // Loop over process table looking for process to run.
+    winner++;
+    counter++;
     acquire(&ptable.lock);
+    // Loop over process table to count total tickets.
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state == RUNNABLE)
+      {
+        totaltickets += p->tickets;
+      }
+    }
+    
+    // Run lottery and choose winning process
+    if(totaltickets > 0){
+      winner = rand() % totaltickets + 1;
+    }
+    
+    // Loop over process table looking for process to run.
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-      swtch(&cpu->scheduler, proc->context);
-      switchkvm();
+      if(p->state == RUNNABLE && counter < winner){
+        // Update counter
+        counter += p->tickets;
+        continue;
+      }
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      proc = 0;
+      if(p->state == RUNNABLE && counter >= winner){
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+        // Add to ticks
+        p->ticks = p->ticks + 1;
+        swtch(&cpu->scheduler, proc->context);
+        switchkvm();
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        proc = 0;
+        break;
+      }
     }
     release(&ptable.lock);
 
@@ -443,4 +493,47 @@ procdump(void)
   }
 }
 
+int getpinfo(struct pstat* table)
+{
+  //create a pointer able to point to obj
+  struct proc *p;
+  //Create a pointer able to point to objects of the
+  int i = 0; // used to iterate througt the slots of the arrays in pst
+  //lock the ptable (array containing the process)
+  acquire(&ptable.lock);
+  // use p to iterate throght the
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    //check the state of a proces:
+    if (p->state == ZOMBIE || p->state == EMBRYO)
+    {
+      continue;
+    }
+    if (p->state == UNUSED) 
+    {
+      table->inuse[i] = 0; //check the name of the arrays in pstat.
+    }
+    else
+    {
+      table->inuse[i] = 1;
+    }
+    table->pid[i] = p->pid; //with the pid of the process p-›
+    table->tickets[i] = p->tickets; //with the number of ti
+    table->ticks[i] = p->ticks; //with the number of time the process has ri
+    i++;
+  }
+  release (&ptable.lock);
+  return 0;
+}
 
+int settickets(int tickets)
+{
+  if (tickets < 1) {
+    return -1;
+  }
+  else
+  {
+    proc->tickets = tickets;
+    return 0;
+  }
+}

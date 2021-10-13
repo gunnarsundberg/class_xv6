@@ -10,6 +10,7 @@ USER_PROGS := \
 	ln\
 	ls\
 	mkdir\
+	readingpstat\
 	rm\
 	sh\
 	stressfs\
@@ -17,6 +18,7 @@ USER_PROGS := \
 	tester1\
 	tester2\
 	tester3\
+	tickettest\
 	usertests\
 	wc\
 	zombie

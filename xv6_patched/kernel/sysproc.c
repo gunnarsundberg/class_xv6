@@ -21,6 +21,38 @@ sys_exit(void)
   return 0;  // not reached
 }
 
+int 
+sys_getpinfo(void)
+{
+  struct pstat *pTable;
+  if (argptr(0, (void *)&pTable, sizeof(pTable)) < 0) 
+  {
+    return -1; //validation
+  }
+  if (pTable == NULL)
+  {
+    return -1; //validation
+  }
+  //pTable = NULL;
+  //unsigned int number = (unsigned int)pTable;
+  getpinfo(pTable); //call the getpinfo() in proc.c
+  return 0;
+}
+
+int
+sys_settickets(void)
+{
+  int tickets;
+  if (argint(0, &tickets) < 0)
+  {
+    return -1;
+  }
+  else
+  {
+    return settickets(tickets);
+  }
+}
+
 int
 sys_wait(void)
 {
