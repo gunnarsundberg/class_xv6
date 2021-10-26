@@ -20,6 +20,7 @@ USER_PROGS := \
 	tester3\
 	tickettest\
 	usertests\
+	miniproject3test\
 	wc\
 	zombie
 
