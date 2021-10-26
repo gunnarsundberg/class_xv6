@@ -19,8 +19,8 @@ int main()
 {
 	int p = getpid();
 	null(p);
-	//null2(p);
-	//bounds(p);
+	null2(p);
+	bounds(p);
 	exit();
 }
 
